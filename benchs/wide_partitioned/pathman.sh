@@ -26,18 +26,17 @@ function ts_dec_hours()
 }
 
 # Init partitioned table
-$PSQL -d $DBNAME -c "create table if not exists wide_tbl(t timestamp, i int)" > /dev/null
+$PSQL -d $DBNAME -c "create extension if not exists pg_pathman" > /dev/null
+$PSQL -d $DBNAME -c "create table if not exists wide_tbl(t timestamp not null, i int)" > /dev/null
+ts_dec_hours "$cur_ts" $((START_NUM_PARTS-1)) "%Y-%m-%d %H:00:00"
+start_ts=$result
+create_parts="select create_range_partitions('wide_tbl', 't', timestamp '$start_ts', interval '1 hour', $START_NUM_PARTS)"
+$PSQL -d $DBNAME -c "$create_parts" > /dev/null
 for (( i=0; i<$START_NUM_PARTS; i++ )); do
-    ts_dec_hours "$cur_ts" $i "%Y-%m-%d %H:00:00"
-    start_ts=$result
     ts_dec_hours "$cur_ts" $i
     middle_ts=$result
-    ts_inc_hours "$start_ts" 1
-    end_ts=$result
-
-    create_part="create table if not exists wide_tbl_$i (check (t >= timestamp '$start_ts' and t < timestamp '$end_ts')) inherits (wide_tbl)"
-    insert_value="insert into wide_tbl_$i values(timestamp '$middle_ts', $i)"
-    $PSQL -d $DBNAME -c "$create_part" -c "$insert_value" > /dev/null
+    insert_value="insert into wide_tbl values(timestamp '$middle_ts', $i)"
+    $PSQL -d $DBNAME -c "$insert_value" > /dev/null
 done
 
 # Incrementally add partitions and run benchs
@@ -49,7 +48,7 @@ while true; do
     test_start_ts=$result
     ts_inc_hours "$test_start_ts" 1
     test_end_ts=$result
-    query="select * from wide_tbl where t between timestamp '$test_start_ts' and timestamp '$test_end_ts'"
+    query="explain select * from wide_tbl where t between timestamp '$test_start_ts' and timestamp '$test_end_ts'"
 
     # Make bench
     cmds=""
@@ -71,14 +70,10 @@ while true; do
 
     # Add new partitions
     for (( j=$i; j<$((i+INTERVAL)); j++ )); do
-        ts_dec_hours "$cur_ts" $j "%Y-%m-%d %H:00:00"
-        start_ts=$result
         ts_dec_hours "$cur_ts" $j
         middle_ts=$result
-        ts_inc_hours "$start_ts" 1
-        end_ts=$result
-        create_part="create table if not exists wide_tbl_$j (check (t >= timestamp '$start_ts' and t < timestamp '$end_ts')) inherits (wide_tbl)"
-        insert_value="insert into wide_tbl_$j values(timestamp '$middle_ts', $j)"
+        create_part="select prepend_range_partition('wide_tbl')"
+        insert_value="insert into wide_tbl values(timestamp '$middle_ts', $j)"
         $PSQL -d $DBNAME -c "$create_part" -c "$insert_value" > /dev/null
     done
     i=$j
@@ -86,3 +81,4 @@ done
 
 # Remove partitioned table
 $PSQL -d $DBNAME -c "drop table wide_tbl cascade" > /dev/null 2>&1
+$PSQL -d $DBNAME -c "drop extension pg_pathman cascade" > /dev/null 2>&1
