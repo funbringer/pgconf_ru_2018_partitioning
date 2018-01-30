@@ -26,17 +26,18 @@ function ts_dec_hours()
 }
 
 # Init partitioned table
-$PSQL -d $DBNAME -c "create extension if not exists pg_pathman" > /dev/null
-$PSQL -d $DBNAME -c "create table if not exists wide_tbl(t timestamp not null, i int)" > /dev/null
-ts_dec_hours "$cur_ts" $((START_NUM_PARTS-1)) "%Y-%m-%d %H:00:00"
-start_ts=$result
-create_parts="select create_range_partitions('wide_tbl', 't', timestamp '$start_ts', interval '1 hour', $START_NUM_PARTS)"
-$PSQL -d $DBNAME -c "$create_parts" > /dev/null
+$PSQL -d $DBNAME -c "create table if not exists wide_tbl(t timestamp, i int) partition by range(t)" > /dev/null
 for (( i=0; i<$START_NUM_PARTS; i++ )); do
+    ts_dec_hours "$cur_ts" $i "%Y-%m-%d %H:00:00"
+    start_ts=$result
     ts_dec_hours "$cur_ts" $i
     middle_ts=$result
+    ts_inc_hours "$start_ts" 1
+    end_ts=$result
+
+    create_part="create table if not exists wide_tbl_$i partition of wide_tbl for values from ('$start_ts') to ('$end_ts')"
     insert_value="insert into wide_tbl values(timestamp '$middle_ts', $i)"
-    $PSQL -d $DBNAME -c "$insert_value" > /dev/null
+    $PSQL -d $DBNAME -c "$create_part" -c "$insert_value" > /dev/null
 done
 
 # Incrementally add partitions and run benchs
@@ -70,9 +71,13 @@ while true; do
 
     # Add new partitions
     for (( j=$i; j<$((i+INTERVAL)); j++ )); do
+        ts_dec_hours "$cur_ts" $j "%Y-%m-%d %H:00:00"
+        start_ts=$result
         ts_dec_hours "$cur_ts" $j
         middle_ts=$result
-        create_part="select prepend_range_partition('wide_tbl')"
+        ts_inc_hours "$start_ts" 1
+        end_ts=$result
+        create_part="create table if not exists wide_tbl_$j partition of wide_tbl for values from ('$start_ts') to ('$end_ts')"
         insert_value="insert into wide_tbl values(timestamp '$middle_ts', $j)"
         $PSQL -d $DBNAME -c "$create_part" -c "$insert_value" > /dev/null
     done
@@ -81,4 +86,3 @@ done
 
 # Remove partitioned table
 $PSQL -d $DBNAME -c "drop table wide_tbl cascade" > /dev/null 2>&1
-$PSQL -d $DBNAME -c "drop extension pg_pathman cascade" > /dev/null 2>&1
