@@ -36,7 +36,7 @@ for (( i=0; i<$START_NUM_PARTS; i++ )); do
     end_ts=$result
 
     create_part="create table if not exists wide_tbl_$i partition of wide_tbl for values from ('$start_ts') to ('$end_ts')"
-    insert_value="insert into wide_tbl values(timestamp '$middle_ts', $i)"
+    insert_value="insert into wide_tbl_$i values(timestamp '$middle_ts', $i)"
     $PSQL -d $DBNAME -c "$create_part" -c "$insert_value" > /dev/null
 done
 
@@ -78,7 +78,7 @@ while true; do
         ts_inc_hours "$start_ts" 1
         end_ts=$result
         create_part="create table if not exists wide_tbl_$j partition of wide_tbl for values from ('$start_ts') to ('$end_ts')"
-        insert_value="insert into wide_tbl values(timestamp '$middle_ts', $j)"
+        insert_value="insert into wide_tbl_$j values(timestamp '$middle_ts', $j)"
         $PSQL -d $DBNAME -c "$create_part" -c "$insert_value" > /dev/null
     done
     i=$j

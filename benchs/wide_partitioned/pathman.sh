@@ -73,7 +73,7 @@ while true; do
         ts_dec_hours "$cur_ts" $j
         middle_ts=$result
         create_part="select prepend_range_partition('wide_tbl')"
-        insert_value="insert into wide_tbl values(timestamp '$middle_ts', $j)"
+        insert_value="insert into wide_tbl_$j values(timestamp '$middle_ts', $j)"
         $PSQL -d $DBNAME -c "$create_part" -c "$insert_value" > /dev/null
     done
     i=$j
