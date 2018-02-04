@@ -75,3 +75,57 @@ set max_parallel_workers_per_gather to 2;
  Planning time: 0.463 ms
  Execution time: 284.889 ms
 (20 rows)
+
+-- Add foreign partitions
+create extension postgres_fdw;
+create server loopback foreign data wrapper postgres_fdw options (dbname 'postgres', port '5432');
+alter table foo detach partition foo_2018_01;
+alter table foo detach partition foo_2018_02;
+alter table foo detach partition foo_2018_03;
+
+alter table foo attach partition f_foo_2018_01 for values from ('2018-01-01') to ('2018-02-01');
+alter table foo attach partition f_foo_2018_02 for values from ('2018-02-01') to ('2018-03-01');
+alter table foo attach partition f_foo_2018_03 for values from ('2018-03-01') to ('2018-04-01');
+
+-- Simple aggregate doesn't push down under foreign scan
+# explain (costs off, verbose) select avg(i) from foo;
+                            QUERY PLAN
+------------------------------------------------------------------
+ Finalize Aggregate
+   Output: avg(f_foo_2018_01.i)
+   ->  Append
+         ->  Partial Aggregate
+               Output: PARTIAL avg(f_foo_2018_01.i)
+               ->  Foreign Scan on public.f_foo_2018_01
+                     Output: f_foo_2018_01.i
+                     Remote SQL: SELECT i FROM public.foo_2018_01
+         ->  Partial Aggregate
+               Output: PARTIAL avg(f_foo_2018_02.i)
+               ->  Foreign Scan on public.f_foo_2018_02
+                     Output: f_foo_2018_02.i
+                     Remote SQL: SELECT i FROM public.foo_2018_02
+         ->  Partial Aggregate
+               Output: PARTIAL avg(f_foo_2018_03.i)
+               ->  Foreign Scan on public.f_foo_2018_03
+                     Output: f_foo_2018_03.i
+                     Remote SQL: SELECT i FROM public.foo_2018_03
+(18 rows)
+
+-- But aggregates grouped by partition key pushes down
+# explain (costs off, verbose) select t, avg(i) from foo group by t;
+                               QUERY PLAN
+-------------------------------------------------------------------------
+ Append
+   ->  Foreign Scan
+         Output: f_foo_2018_01.t, (avg(f_foo_2018_01.i))
+         Relations: Aggregate on (public.f_foo_2018_01 foo)
+         Remote SQL: SELECT t, avg(i) FROM public.foo_2018_01 GROUP BY 1
+   ->  Foreign Scan
+         Output: f_foo_2018_02.t, (avg(f_foo_2018_02.i))
+         Relations: Aggregate on (public.f_foo_2018_02 foo)
+         Remote SQL: SELECT t, avg(i) FROM public.foo_2018_02 GROUP BY 1
+   ->  Foreign Scan
+         Output: f_foo_2018_03.t, (avg(f_foo_2018_03.i))
+         Relations: Aggregate on (public.f_foo_2018_03 foo)
+         Remote SQL: SELECT t, avg(i) FROM public.foo_2018_03 GROUP BY 1
+(13 rows)
