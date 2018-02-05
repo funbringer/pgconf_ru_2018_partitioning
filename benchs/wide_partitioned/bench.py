@@ -5,6 +5,7 @@ import os
 import re
 
 from inh import *
+from pathman import *
 
 dbname='postgres'
 
@@ -13,13 +14,17 @@ BENCH_DURATION = 100
 PART_NUMS = [100, 250, 500, 10**3, 2 * 10**3, 4 * 10**3, 8 * 10**3, 16 * 10**3]
 
 with testgres.get_new_node('master') as master:
-    pstate = InhPartedTblState()
+    pstate = PathmanPartedTblState()
 
     # start a new node
     master.init()
     pstate.set_node(master)
     master.start()
     pstate.create_tbl()
+
+    #  pstate.create_parts(10)
+    #  print master.execute(dbname, 'select tableoid::regclass,* from foo')
+    #  import sys; sys.exit(0)
 
     temp = tempfile.NamedTemporaryFile()
     FNULL = open(os.devnull, 'w')
