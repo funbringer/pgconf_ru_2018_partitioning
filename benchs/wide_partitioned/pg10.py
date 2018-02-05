@@ -18,9 +18,6 @@ class Pg10PartedTblState:
         node.append_conf(
                 'postgresql.conf',
                 'max_locks_per_transaction=4096\n')
-        node.append_conf(
-                'postgresql.conf',
-                'shared_preload_libraries=\'pg_pathman\'\n')
 
     def create_tbl(self):
         self.node.execute(dbname, self.create_parted_tbl)
