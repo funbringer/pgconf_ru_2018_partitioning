@@ -6,6 +6,7 @@ import re
 
 from inh import *
 from pathman import *
+from pg10 import *
 
 dbname='postgres'
 
@@ -14,7 +15,7 @@ BENCH_DURATION = 100
 PART_NUMS = [100, 250, 500, 10**3, 2 * 10**3, 4 * 10**3, 8 * 10**3, 16 * 10**3]
 
 with testgres.get_new_node('master') as master:
-    pstate = PathmanPartedTblState()
+    pstate = Pg10PartedTblState()
 
     # start a new node
     master.init()
@@ -32,7 +33,8 @@ with testgres.get_new_node('master') as master:
         pstate.create_parts(nparts)
 
         temp.seek(0)
-        temp.write(pstate.random_select())
+        sql = pstate.random_select()
+        temp.write(sql)
         temp.truncate()
         temp.flush()
 
