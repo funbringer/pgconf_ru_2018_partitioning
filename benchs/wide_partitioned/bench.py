@@ -18,7 +18,7 @@ BENCH_DURATION = 100
 PART_NUMS = [100, 250, 500, 10**3, 2 * 10**3, 4 * 10**3, 8 * 10**3, 16 * 10**3]
 
 with testgres.get_new_node('master') as master:
-    pstate = TimescalePartedTblState()
+    pstate = FixedTimescalePartedTblState()
 
     # start a new node
     master.init()
@@ -27,7 +27,10 @@ with testgres.get_new_node('master') as master:
     pstate.create_tbl()
 
     #  pstate.create_parts(10)
-    #  print master.execute(dbname, pstate.random_select())
+    #  for _ in range(10):
+        #  sql = pstate.random_select()
+        #  print sql
+        #  print master.execute(dbname, sql)
     #  print master.execute(dbname, 'select tableoid::regclass, * from foo')
     #  import sys; sys.exit(0)
 
