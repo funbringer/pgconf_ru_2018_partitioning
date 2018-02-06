@@ -10,6 +10,7 @@ from pg10 import *
 from invalidating_pathman import *
 from plpgsql_pruning import *
 from timescaledb import *
+from fixed_timescaledb import *
 
 dbname='postgres'
 
