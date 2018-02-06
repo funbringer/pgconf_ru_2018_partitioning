@@ -36,10 +36,10 @@ class CustomPruningPartedTblState:
             language plpgsql
             as $$
             begin
-                return query execute format('select * from foo_%s where i=%1$s', _i);
+                %s
             end;
             $$
-        """# % (generate_pruning(1, num+1, 1),)
+        """ % (generate_pruning(1, num+1, 1),)
         self.node.execute(dbname, custom_pruning_sql)
 
     def random_select(self):
@@ -50,13 +50,13 @@ def generate_pruning(start, end, indent):
         if end < start:
             return
         if end-start <= 10:
-            result[0] += '\t'*indent + 'case i\n'
+            result[0] += '\t'*indent + 'case _i\n'
             for i in range(start, end):
-                result[0] += '\t'*indent + 'when %d then return query select * from foo_%d where i=%d;\n' % (i, i, i)
+                result[0] += '\t'*indent + 'when %d then return query select * from foo_%d where i=_i;\n' % (i, i)
             result[0] += '\t'*indent + 'end case;\n'
             return
         middle = (end+start) / 2
-        result[0] += '\t'*indent + 'if i >= %d and i < %d then\n' % (start, middle)
+        result[0] += '\t'*indent + 'if _i >= %d and _i < %d then\n' % (start, middle)
         generate_pruning_recursive(start, middle, indent+1, result)
         result[0] += '\t'*indent + 'else\n'
         generate_pruning_recursive(middle, end, indent+1, result)
