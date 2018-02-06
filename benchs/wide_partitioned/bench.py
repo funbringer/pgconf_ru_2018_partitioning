@@ -7,6 +7,8 @@ import re
 from inh import *
 from pathman import *
 from pg10 import *
+from invalidating_pathman import *
+from plpgsql_pruning import *
 
 dbname='postgres'
 
@@ -15,7 +17,7 @@ BENCH_DURATION = 100
 PART_NUMS = [100, 250, 500, 10**3, 2 * 10**3, 4 * 10**3, 8 * 10**3, 16 * 10**3]
 
 with testgres.get_new_node('master') as master:
-    pstate = Pg10PartedTblState()
+    pstate = CustomPruningPartedTblState()
 
     # start a new node
     master.init()
@@ -24,7 +26,8 @@ with testgres.get_new_node('master') as master:
     pstate.create_tbl()
 
     #  pstate.create_parts(10)
-    #  print master.execute(dbname, 'select tableoid::regclass,* from foo')
+    #  for i in range(0,11):
+        #  print master.execute(dbname, 'select * from select_foo(%d)' % i)
     #  import sys; sys.exit(0)
 
     temp = tempfile.NamedTemporaryFile()
