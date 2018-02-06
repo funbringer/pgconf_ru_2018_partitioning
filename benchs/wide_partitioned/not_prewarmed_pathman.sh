@@ -38,7 +38,7 @@ for (( i=0; i<$START_NUM_PARTS; i++ )); do
     $PSQL -d $DBNAME -c "$insert_value" > /dev/null
 done
 
-# Incrementally add partitions and run benchs
+# Incrementally add partitions and run benches
 i=$START_NUM_PARTS
 while true; do
 

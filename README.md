@@ -4,7 +4,9 @@
 
 1. Partitioning via inheritance
 
-    ```bash benchs/wide_partitioned/inh.sh```
+    ```bash
+		benches/wide_partitioned/inh.sh
+	```
 
     Before running you have to setup the environment variables:
     - PSQL - path to psql client to postgres, default "/usr/local/bin/psql"
@@ -19,6 +21,8 @@
 
 2. Partitioning via pg_pathman
 
-    ```bash benchs/wide_partitioned/pathman.sh```
+    ```bash
+		benches/wide_partitioned/pathman.sh
+	```
 
     Environment variables are the same as before.
