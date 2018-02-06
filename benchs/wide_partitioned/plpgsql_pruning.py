@@ -31,15 +31,15 @@ class CustomPruningPartedTblState:
             con.commit()
         self.partnum = num
         custom_pruning_sql = """
-            create or replace function select_foo(i int)
+            create or replace function select_foo(_i int)
             returns setof foo
             language plpgsql
             as $$
             begin
-            %s
+                return query execute format('select * from foo_%s where i=%1$s', _i);
             end;
             $$
-        """ % (generate_pruning(1, num+1, 1),)
+        """# % (generate_pruning(1, num+1, 1),)
         self.node.execute(dbname, custom_pruning_sql)
 
     def random_select(self):
@@ -52,7 +52,7 @@ def generate_pruning(start, end, indent):
         if end-start <= 10:
             result[0] += '\t'*indent + 'case i\n'
             for i in range(start, end):
-                result[0] += '\t'*indent + 'when %d then return query select * from foo_%d;\n' % (i, i)
+                result[0] += '\t'*indent + 'when %d then return query select * from foo_%d where i=%d;\n' % (i, i, i)
             result[0] += '\t'*indent + 'end case;\n'
             return
         middle = (end+start) / 2
