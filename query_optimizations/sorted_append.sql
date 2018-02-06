@@ -1,4 +1,7 @@
--- Branch sorted_append
+/* https://github.com/maksm90/postgresql/tree/sorted_append */
+
+
+drop table if exists foo;
 
 create table foo(i int, t timestamp) partition by range (t);
 create table foo_2018_1 partition of foo for values from ( '2018-01-01') to ('2018-02-01');
@@ -12,8 +15,12 @@ create index on foo_2018_3(t desc);
 
 insert into foo select i, timestamp '2018-01-01' + random() * (timestamp '2018-04-01' - timestamp '2018-01-01') from generate_series(1, 1000) i;
 
+vacuum analyze;
+
+
 -- Sorted append
-# explain (costs off, analyze, timing off) select i from foo order by t desc limit 10;
+explain (costs off, analyze, timing off) select i from foo order by t desc limit 10;
+/*
                                       QUERY PLAN
 --------------------------------------------------------------------------------------
  Limit (actual rows=10 loops=1)
@@ -25,9 +32,11 @@ insert into foo select i, timestamp '2018-01-01' + random() * (timestamp '2018-0
  Planning time: 0.826 ms
  Execution time: 0.116 ms
 (8 rows)
+*/
 
 -- Without optimization
-# explain (costs off, analyze, timing off) select i from foo order by t desc limit 10;
+explain (costs off, analyze, timing off) select i from foo order by t desc limit 10;
+/*
                              QUERY PLAN
 --------------------------------------------------------------------
  Limit (actual rows=10 loops=1)
@@ -41,3 +50,4 @@ insert into foo select i, timestamp '2018-01-01' + random() * (timestamp '2018-0
  Planning time: 1.264 ms
  Execution time: 0.671 ms
 (10 rows)
+*/
