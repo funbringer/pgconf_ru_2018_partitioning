@@ -17,28 +17,40 @@ create table hot_foo_items_1 partition of hot_foo_items for values with (modulus
 create table hot_foo_items_2 partition of hot_foo_items for values with (modulus 2, remainder 1);
 
 -- Query to not hot partition
-# explain (costs off) select * from foo where a = 4;
+explain (costs off) select * from foo where a = 4;
+/*
          QUERY PLAN
 ----------------------------
  Append
    ->  Seq Scan on rest_foo
          Filter: (a = 4)
 (3 rows)
- 
+*/
+
 -- Query to hot item with additional parameter
-# explain (costs off) select * from foo where a = 123 and b=0;
+explain (costs off) select * from foo where a = 123 and b=0;
+/*
                QUERY PLAN
 -----------------------------------------
  Append
    ->  Seq Scan on hot_foo_items_1
          Filter: ((a = 123) AND (b = 0))
 (3 rows)
+*/
 
 -- Query to not hot item in the hot parent partition
-# explain (costs off) select * from foo where a = 125;
+explain (costs off) select * from foo where a = 125;
+/*
            QUERY PLAN
 --------------------------------
  Append
    ->  Seq Scan on hot_foo_rest
          Filter: (a = 125)
-(3 rows)
+(3 rows)nd
+    ->  Seq Scan on foo
+            Filter: ((t >= '2018-01-01 03:00:00'::timestamp without time zone) AND (t <= '2018-01-01 06:00:00'::timestamp without time zone))
+    ->  Seq Scan on foo_1_1
+            Filter: ((t >= '2018-01-01 03:00:00'::timestamp without time zone) AND (t <= '2018-01-01 06:00:00'::timestamp without time zone))
+    ->  Seq Scan on foo_1_2
+            Fil
+*/

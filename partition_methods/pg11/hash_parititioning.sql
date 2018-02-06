@@ -11,10 +11,12 @@ create table foo_1_3 partition of foo for values with (modulus 6, remainder 4);
 
 -- Move data from foo_1 to foo_1_*
 
-# explain (costs off) select * from foo where i = 34;
+explain (costs off) select * from foo where i = 34;
+/*
         QUERY PLAN
 ---------------------------
  Append
    ->  Seq Scan on foo_1_1
          Filter: (i = 34)
 (3 rows)
+*/
