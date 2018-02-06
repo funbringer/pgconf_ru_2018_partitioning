@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import testgres
 import tempfile
 import subprocess
@@ -12,28 +13,22 @@ from plpgsql_pruning import *
 from timescaledb import *
 from fixed_timescaledb import *
 
-dbname='postgres'
+dbname = 'postgres'
 
-BENCH_DURATION = 100
+BENCH_DURATION = 3
+
 #  part_nums = [10] + range(100, 1001, 100)
 PART_NUMS = [100, 250, 500, 10**3, 2 * 10**3, 4 * 10**3, 8 * 10**3, 16 * 10**3]
 
 with testgres.get_new_node('master') as master:
-    pstate = FixedTimescalePartedTblState()
+    pstate = Pg10PartedTblState()
 
     # start a new node
     master.init()
-    pstate.set_node(master)
     master.start()
-    pstate.create_tbl()
 
-    #  pstate.create_parts(10)
-    #  for _ in range(10):
-        #  sql = pstate.random_select()
-        #  print sql
-        #  print master.execute(dbname, sql)
-    #  print master.execute(dbname, 'select tableoid::regclass, * from foo')
-    #  import sys; sys.exit(0)
+    pstate.set_node(master)
+    pstate.create_tbl()
 
     temp = tempfile.NamedTemporaryFile()
     FNULL = open(os.devnull, 'w')
@@ -47,10 +42,9 @@ with testgres.get_new_node('master') as master:
         temp.flush()
 
         p = master.pgbench(dbname, stdout=subprocess.PIPE, stderr=FNULL,
-                options=[
-                    '-f', temp.name,
-                    '-T', str(BENCH_DURATION)
-        ])
+                           options=[
+                                '-f', temp.name,
+                                '-T', str(BENCH_DURATION)])
 
         latency_re = re.compile(r'^latency average = ([\d\.]+) (\w+)$')
         tps_re = re.compile(r'^tps = ([\d\.]+) \(excluding connections establishing\)$')
@@ -62,7 +56,7 @@ with testgres.get_new_node('master') as master:
             m = tps_re.search(line)
             if m:
                 tps = float(m.group(1))
-        print nparts, '%f%s' % (latency[0], latency[1]), tps
+        print(str(nparts) + ',' + '%f%s' % (latency[0], latency[1]) + ',' + str(tps))
 
         p.communicate()
 
