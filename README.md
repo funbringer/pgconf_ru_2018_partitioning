@@ -5,7 +5,7 @@
 1. Partitioning via inheritance
 
     ```bash
-		benches/wide_partitioned/inh.sh
+		benches/wide_partitioned/shell/inh.sh
 	```
 
     Before running you have to setup the environment variables:
@@ -22,7 +22,7 @@
 2. Partitioning via pg_pathman
 
     ```bash
-		benches/wide_partitioned/pathman.sh
+		benches/wide_partitioned/shell/pathman.sh
 	```
 
     Environment variables are the same as before.
