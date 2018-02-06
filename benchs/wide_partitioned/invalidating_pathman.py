@@ -37,9 +37,8 @@ class InvalidatingPathmanPartedTblState:
             con.commit()
         self.partnum = num
 
+    def random_select(self):
         self.node.execute(dbname, "select append_range_partition('foo', 'test')")
         self.node.execute(dbname, "select drop_range_partition('test')")
-
-    def random_select(self):
         return self.select % random.randrange(1, self.partnum+1)
 
